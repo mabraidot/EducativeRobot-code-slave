@@ -2,6 +2,5 @@
     "board": "attiny:avr:ATtinyX5",
     "configuration": "cpu=attiny85,clock=internal1",
     "sketch": "code-slave-arrow-forward.ino",
-    "port": "COM6",
-    "output": "build"
+    "port": "COM6"
 }

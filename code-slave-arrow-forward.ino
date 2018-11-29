@@ -16,12 +16,13 @@ Address   001
 
 volatile uint8_t i2c_regs[] =
 {
+    0,        // Active/Discovered
     0,        // Open gate
     0         // Flash the LED
 };
 volatile byte reg_position = 0;
 const byte reg_size = sizeof(i2c_regs);
-
+volatile char discovered = 0;
 
 void setup()
 {
@@ -93,13 +94,14 @@ void loop()
   TinyWireS_stop_check();
   ////////////////////////////////////
 
+  set_discovered();
   blink_led();
   open_gate();
 }
 
 void blink_led()
 {
-  if(i2c_regs[1])
+  if(discovered && i2c_regs[2])
   {
     static byte led_on = 1;
     static int blink_interval = 500;
@@ -110,7 +112,7 @@ void blink_led()
       blink_timeout = millis() + blink_interval;
       if(!led_on)
       {
-        i2c_regs[1]--;
+        i2c_regs[2]--;
       }
     }
     digitalWrite(LED_PIN, led_on);
@@ -125,12 +127,29 @@ void blink_led()
 
 void open_gate()
 {
+  if(discovered)         // Only if the block was already discovered
+  {
+    if(i2c_regs[1])
+    {
+      digitalWrite(GATE_PIN, HIGH);
+    }
+    else
+    {
+      digitalWrite(GATE_PIN, LOW);
+    }
+  }
+}
+
+
+void set_discovered()
+{
   if(i2c_regs[0])
   {
-    digitalWrite(GATE_PIN, HIGH);
+    discovered = 1;
   }
   else
   {
-    digitalWrite(GATE_PIN, LOW);
+    discovered = 0;
+    memset(i2c_regs,0,sizeof(i2c_regs));
   }
 }
