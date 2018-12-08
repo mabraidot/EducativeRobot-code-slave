@@ -1,37 +1,59 @@
 /**
 Slave coding block:
 -------------------
-Block:    FORDWARD ARROW
-Address   001
 */
 
-#define I2C_SLAVE_ADDRESS 0x2F
-#define LED_PIN 4
-#define GATE_PIN 3
+#include <EEPROM.h>
 #include <TinyWireS.h>
+
+
+#define LED_PIN 3
+#define GATE_PIN 4
+
+
 // The default buffer size
 #ifndef TWI_RX_BUFFER_SIZE
   #define TWI_RX_BUFFER_SIZE ( 16 )
 #endif
 
+byte i2c_slave_address = 0x01;
+
 volatile uint8_t i2c_regs[] =
 {
-    0,        // Active/Discovered
-    0,        // Open gate
+    0,        // Set new I2C address
+    0,        // Activate to any child slave
     0         // Flash the LED
 };
 volatile byte reg_position = 0;
 const byte reg_size = sizeof(i2c_regs);
-volatile char discovered = 0;
+
+// Needed for software reset
+void(* resetFunc) (void) = 0;
 
 void setup()
 {
-  TinyWireS.begin(I2C_SLAVE_ADDRESS);   // Join i2c network
+
+  pinMode(LED_PIN, OUTPUT);             // Status LED
+  pinMode(GATE_PIN, OUTPUT);            // Status GATE for child slave
+
+  TinyWireS.begin(getAddress());        // Join i2c network
   TinyWireS.onReceive(receiveEvent);
   TinyWireS.onRequest(requestEvent);
   
-  pinMode(LED_PIN, OUTPUT);             // Status LED
-  pinMode(GATE_PIN, OUTPUT);            // Status GATE
+}
+
+// Slave address is stored at EEPROM address 0x00
+byte getAddress() {
+  byte i2c_new_address = EEPROM.read(0x00);
+  if (i2c_new_address == 0x00) { 
+    i2c_new_address = i2c_slave_address; 
+  }else if(i2c_new_address != i2c_slave_address){
+    // Write back the original placeholder address, in case of an unplug
+    EEPROM.write(0x00, i2c_slave_address);
+    activate_child();
+  }
+
+  return i2c_new_address;
 }
 
 // Gets called when the ATtiny receives an i2c command
@@ -94,14 +116,14 @@ void loop()
   TinyWireS_stop_check();
   ////////////////////////////////////
 
-  set_discovered();
+  set_new_address();
   blink_led();
-  open_gate();
+  activate_child();
 }
 
 void blink_led()
 {
-  if(discovered && i2c_regs[2])
+  if(i2c_regs[2])
   {
     static byte led_on = 1;
     static int blink_interval = 500;
@@ -125,31 +147,26 @@ void blink_led()
 
 }
 
-void open_gate()
+void activate_child()
 {
-  if(discovered)         // Only if the block was already discovered
+  if(i2c_regs[1])
   {
-    if(i2c_regs[1])
-    {
-      digitalWrite(GATE_PIN, HIGH);
-    }
-    else
-    {
-      digitalWrite(GATE_PIN, LOW);
-    }
+    digitalWrite(GATE_PIN, HIGH);
+  }
+  else
+  {
+    digitalWrite(GATE_PIN, LOW);
   }
 }
 
 
-void set_discovered()
+void set_new_address()
 {
   if(i2c_regs[0])
   {
-    discovered = 1;
-  }
-  else
-  {
-    discovered = 0;
-    memset(i2c_regs,0,sizeof(i2c_regs));
+    //write EEPROM and reset
+    EEPROM.write(0x00, i2c_regs[0]);
+    i2c_regs[0] = 0;
+    resetFunc();  
   }
 }
