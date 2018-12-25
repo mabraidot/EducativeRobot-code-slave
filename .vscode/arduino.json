@@ -2,5 +2,6 @@
     "board": "ATTinyCore:avr:attinyx5",
     "sketch": "EducativeRobot-code-slave.ino",
     "port": "COM6",
-    "configuration": "LTO=disable,TimerClockSource=default,chip=85,clock=16pll,eesave=disable,bod=disable"
+    "configuration": "LTO=disable,TimerClockSource=default,chip=85,clock=16pll,eesave=disable,bod=disable",
+    "programmer": "USBasp"
 }

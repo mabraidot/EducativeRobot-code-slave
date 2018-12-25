@@ -7,9 +7,9 @@ Slave coding block:
 #include <TinyWireS.h>
 
 
-#define LED_PIN 3
-#define GATE_PIN 4
-
+#define LED_PIN     3
+#define GATE_PIN    4
+#define RESET_PIN   0
 
 // The default buffer size
 #ifndef TWI_RX_BUFFER_SIZE
@@ -32,7 +32,6 @@ void(* resetFunc) (void) = 0;
 
 void setup()
 {
-
   pinMode(LED_PIN, OUTPUT);             // Status LED
   pinMode(GATE_PIN, OUTPUT);            // Status GATE for child slave
 
@@ -119,6 +118,8 @@ void loop()
   set_new_address();
   blink_led();
   activate_child();
+
+  readReset();
 }
 
 void blink_led()
@@ -168,5 +169,18 @@ void set_new_address()
     EEPROM.write(0x00, i2c_regs[0]);
     i2c_regs[0] = 0;
     resetFunc();  
+  }
+}
+
+void readReset(){
+  static const unsigned int REFRESH_INTERVAL = 500; // ms 
+  static unsigned long lastRefreshTime = 0;
+  if(millis() - lastRefreshTime >= REFRESH_INTERVAL){
+    lastRefreshTime = millis();
+    if (analogRead(RESET_PIN) > 1000 ) {  // reset pin is near Vcc
+      i2c_regs[1] = 0;                    // disable slave
+    } else {                              // reset pin is less than 1000/1024 * 5 vcc
+      i2c_regs[1] = 1;                    // enable slave
+    }
   }
 }
