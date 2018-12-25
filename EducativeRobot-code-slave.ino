@@ -22,10 +22,12 @@ volatile uint8_t i2c_regs[] =
 {
     0,        // Set new I2C address
     0,        // Activate to any child slave
-    0         // Flash the LED
+    0,        // Flash the LED
+    0         // Activated block
 };
 volatile byte reg_position = 0;
 const byte reg_size = sizeof(i2c_regs);
+boolean activated = false;
 
 // Needed for software reset
 void(* resetFunc) (void) = 0;
@@ -97,12 +99,14 @@ void receiveEvent(uint8_t howMany)
 // Gets called when the ATtiny receives an i2c request
 void requestEvent()
 {
-  TinyWireS.send(i2c_regs[reg_position]);
-  // Increment the reg position on each read, and loop back to zero
-  reg_position++;
-  if (reg_position >= reg_size)
-  {
-    reg_position = 0;
+  if(activated){
+    TinyWireS.send(i2c_regs[reg_position]);
+    // Increment the reg position on each read, and loop back to zero
+    reg_position++;
+    if (reg_position >= reg_size)
+    {
+      reg_position = 0;
+    }
   }
 }
 
@@ -124,7 +128,7 @@ void loop()
 
 void blink_led()
 {
-  if(i2c_regs[2])
+  if(activated && i2c_regs[2])
   {
     static byte led_on = 1;
     static int blink_interval = 500;
@@ -144,43 +148,51 @@ void blink_led()
   else
   {
     digitalWrite(LED_PIN, LOW);
+    i2c_regs[2] = 0;
   }
 
 }
 
 void activate_child()
 {
-  if(i2c_regs[1])
+  if(activated && i2c_regs[1])
   {
     digitalWrite(GATE_PIN, HIGH);
   }
   else
   {
     digitalWrite(GATE_PIN, LOW);
+    i2c_regs[1] = 0;
   }
 }
 
 
 void set_new_address()
 {
-  if(i2c_regs[0])
+  if(activated && i2c_regs[0])
   {
     //write EEPROM and reset
     EEPROM.write(0x00, i2c_regs[0]);
     i2c_regs[0] = 0;
     resetFunc();  
+  }else{
+    i2c_regs[0] = 0;
   }
 }
 
 void readReset(){
-  static const unsigned int REFRESH_INTERVAL = 500; // ms 
+  static const unsigned int REFRESH_INTERVAL = 200; // ms 
   static unsigned long lastRefreshTime = 0;
   if(millis() - lastRefreshTime >= REFRESH_INTERVAL){
     lastRefreshTime = millis();
     if (analogRead(RESET_PIN) > 1000 ) {  // reset pin is near Vcc
+      if(activated){      // If it is soft resetting for the first time, reset it for real
+        resetFunc();
+      }
       i2c_regs[1] = 0;                    // disable slave
+      activated = false;  // Set itself as an inactive block
     } else {                              // reset pin is less than 1000/1024 * 5 vcc
-      i2c_regs[1] = 1;                    // enable slave
+      activated = true;   // Set itself as an active block
     }
   }
 }
