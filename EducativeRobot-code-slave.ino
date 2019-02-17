@@ -17,13 +17,16 @@ Slave coding block:
 #endif
 
 byte i2c_slave_address = 0x01;
+byte slave_function     = 2; // SLAVE_FORWARD_ARROW
 
 volatile uint8_t i2c_regs[] =
 {
-    0,        // Set new I2C address
-    0,        // Activate to any child slave
-    0,        // Flash the LED
-    0         // Activated block
+    0,              // Set new I2C address
+    0,              // Activate to any child slave
+    0,              // Flash the LED
+    0,              // Activated block
+    slave_function, // Slave function
+    0               // Reserved feature
 };
 volatile byte reg_position = 0;
 const byte reg_size = sizeof(i2c_regs);
@@ -119,30 +122,33 @@ void loop()
   ////////////////////////////////////
 
   set_new_address();
-  blink_led();
+  led();
   activate_child();
 
   readReset();
 }
 
-void blink_led()
+
+void led()
 {
-  if(i2c_regs[3] && i2c_regs[2])
+  if(i2c_regs[3])
   {
-    static byte led_on = 1;
-    static int blink_interval = 500;
-    static unsigned long blink_timeout = millis() + blink_interval;
-    
-    if(blink_timeout < millis()){
-      led_on = !led_on;
-      blink_timeout = millis() + blink_interval;
-      if(!led_on)
-      {
-        i2c_regs[2]--;
+    // Blink
+    if(i2c_regs[2] == 2){
+      static byte led_on = 1;
+      static int blink_interval = 500;
+      static unsigned long blink_timeout = millis() + blink_interval;
+      
+      if(blink_timeout < millis()){
+        led_on = !led_on;
+        blink_timeout = millis() + blink_interval;
       }
+      digitalWrite(LED_PIN, led_on);
+    }else if(i2c_regs[2] == 1){
+      digitalWrite(LED_PIN, 1);
+    }else{
+      digitalWrite(LED_PIN, 0);
     }
-    digitalWrite(LED_PIN, led_on);
-    
   }
   else
   {
@@ -151,6 +157,7 @@ void blink_led()
   }
 
 }
+
 
 void activate_child()
 {
