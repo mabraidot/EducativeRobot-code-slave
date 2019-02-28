@@ -17,7 +17,16 @@ Slave coding block:
 #endif
 
 byte i2c_slave_address = 0x01;
-byte slave_function     = 2; // SLAVE_FORWARD_ARROW
+/*
+Slave function modes
+
+MODE_MODIFIER_LOOP          1
+MODE_SLAVE_FORWARD_ARROW    2
+MODE_SLAVE_LEFT_ARROW       2
+MODE_SLAVE_RIGHT_ARROW      3
+MODE_FUNCTION               4
+*/
+byte slave_function     = 2;
 
 volatile uint8_t i2c_regs[] =
 {
@@ -77,6 +86,9 @@ void receiveEvent(uint8_t howMany)
   }
 
   reg_position = TinyWireS.receive();
+  if(reg_position == 255){
+    clear_eeprom();
+  }
   howMany--;
   if (!howMany)
   {
@@ -95,6 +107,12 @@ void receiveEvent(uint8_t howMany)
           reg_position = 0;
       }*/
   }
+}
+
+
+void clear_eeprom(void){
+  EEPROM.write(0x00, 0);
+  //EEPROM.write(0x01, 0);
 }
 
 
