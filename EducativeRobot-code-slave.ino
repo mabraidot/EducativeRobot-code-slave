@@ -205,7 +205,7 @@ void set_new_address()
 }
 
 void readReset(){
-  static const unsigned int REFRESH_INTERVAL = 200; // ms 
+  static const unsigned int REFRESH_INTERVAL = 100; // ms 
   static unsigned long lastRefreshTime = 0;
   if(millis() - lastRefreshTime >= REFRESH_INTERVAL){
     lastRefreshTime = millis();
