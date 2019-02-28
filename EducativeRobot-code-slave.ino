@@ -16,7 +16,7 @@ Slave coding block:
   #define TWI_RX_BUFFER_SIZE ( 16 )
 #endif
 
-byte i2c_slave_address = 0x01;
+byte i2c_slave_address = 0x08;
 /*
 Slave function modes
 
@@ -30,12 +30,12 @@ byte slave_function     = 2;
 
 volatile uint8_t i2c_regs[] =
 {
-    0,              // Set new I2C address
-    0,              // Activate to any child slave
-    0,              // Flash the LED
-    0,              // Activated block
-    slave_function, // Slave function
-    0               // Reserved feature
+    0,              // 0: Set new I2C address
+    0,              // 1: Activate to any child slave
+    0,              // 2: Flash the LED
+    0,              // 3: Activated block
+    slave_function, // 4: Slave function
+    0               // 5: Reserved feature
 };
 volatile byte reg_position = 0;
 const byte reg_size = sizeof(i2c_regs);
@@ -205,7 +205,7 @@ void set_new_address()
 }
 
 void readReset(){
-  static const unsigned int REFRESH_INTERVAL = 100; // ms 
+  static const unsigned int REFRESH_INTERVAL = 50; // ms 
   static unsigned long lastRefreshTime = 0;
   if(millis() - lastRefreshTime >= REFRESH_INTERVAL){
     lastRefreshTime = millis();
