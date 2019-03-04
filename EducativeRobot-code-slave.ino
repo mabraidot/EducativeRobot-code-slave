@@ -43,6 +43,60 @@ const byte reg_size = sizeof(i2c_regs);
 // Needed for software reset
 void(* resetFunc) (void) = 0;
 
+
+void clear_eeprom(void){
+  //EEPROM.write(0x00, 0);
+  for(int i = 0; i < EEPROM.length(); i++){
+    EEPROM.write(i, 0);
+  }
+}
+
+
+/*
+Rotate function to wear out the eeprom records evenly
+*/
+void write_eeprom(byte value){
+  /*
+  values    |0|1|x|0|0|0|0|
+  records   |0|1|2|3|4|5|6|
+  */
+  int addr = 0;
+  for(int i=0; i < EEPROM.length(); i++){
+    if(EEPROM.read(i) > 0){
+      addr = i;
+      break;
+    }
+  }
+  if(addr+1 >= EEPROM.length()){  // End of EEPROM, move to the begining
+    EEPROM.write(0x01, value);
+    EEPROM.write(0x00, 1);
+    EEPROM.write(addr+1, 0);
+  }else{  // Not end of EEPROM, so move to the next  set of addresses
+    EEPROM.write(addr+2, value);
+    EEPROM.write(addr+1, 1);
+  }
+  EEPROM.write(addr, 0);
+
+}
+
+
+byte read_eeprom(){
+  /*
+  values    |0|0|1|x|0|0|0|
+  records   |0|1|2|3|4|5|6|
+  */
+  int addr = 0;
+  for(int i=0; i < EEPROM.length(); i++){
+    if(EEPROM.read(i) > 0){
+      addr = i;
+      break;
+    }
+  }
+  return EEPROM.read(addr+1);
+
+}
+
+
 void setup()
 {
   pinMode(LED_PIN, OUTPUT);             // Status LED
@@ -56,12 +110,14 @@ void setup()
 
 // Slave address is stored at EEPROM address 0x00
 byte getAddress() {
-  byte i2c_new_address = EEPROM.read(0x00);
+  //byte i2c_new_address = EEPROM.read(0x00);
+  byte i2c_new_address = read_eeprom();
   if (i2c_new_address == 0x00) { 
     i2c_new_address = i2c_slave_address; 
   }else if(i2c_new_address != i2c_slave_address){
     // Write back the original placeholder address, in case of an unplug
-    EEPROM.write(0x00, i2c_slave_address);
+    //EEPROM.write(0x00, i2c_slave_address);
+    write_eeprom(i2c_slave_address);
     activate_child();
   }
 
@@ -107,12 +163,6 @@ void receiveEvent(uint8_t howMany)
           reg_position = 0;
       }*/
   }
-}
-
-
-void clear_eeprom(void){
-  EEPROM.write(0x00, 0);
-  //EEPROM.write(0x01, 0);
 }
 
 
@@ -196,7 +246,8 @@ void set_new_address()
   if(i2c_regs[3] && i2c_regs[0])
   {
     //write EEPROM and reset
-    EEPROM.write(0x00, i2c_regs[0]);
+    //EEPROM.write(0x00, i2c_regs[0]);
+    write_eeprom(i2c_regs[0]);
     i2c_regs[0] = 0;
     resetFunc();  
   }else{
