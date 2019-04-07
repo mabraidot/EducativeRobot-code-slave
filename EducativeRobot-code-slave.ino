@@ -20,13 +20,16 @@ byte i2c_slave_address = 0x08;
 /*
 Slave function modes
 
-MODE_MODIFIER_LOOP          1
-MODE_SLAVE_FORWARD_ARROW    2
-MODE_SLAVE_LEFT_ARROW       2
-MODE_SLAVE_RIGHT_ARROW      3
-MODE_FUNCTION               4
+MODE_FUNCTION               1
+MODE_MODIFIER_LOOP          2
+MODE_SLAVE_FORWARD_ARROW    3
+MODE_SLAVE_BACKWARD_ARROW   4
+MODE_SLAVE_LEFT_ARROW       5
+MODE_SLAVE_RIGHT_ARROW      6
+MODE_SLAVE_LIGHT            7
+MODE_SLAVE_SOUND            8
 */
-byte slave_function     = 2;
+byte slave_function     = 3;
 
 volatile uint8_t i2c_regs[] =
 {
