@@ -2,7 +2,7 @@
 Slave coding block:
 -------------------
 */
-
+#include <Arduino.h>
 #include <EEPROM.h>
 #include <TinyWireS.h>
 
