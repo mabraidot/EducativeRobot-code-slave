@@ -36,7 +36,7 @@ MODE_WHILE_START            11
 MODE_WHILE_END              12
 MODE_END_OF_PROGRAM         99
 */
-byte slave_function     = 8;
+byte slave_function     = 12;
 
 volatile uint8_t i2c_regs[] =
 {
@@ -197,7 +197,6 @@ void requestEvent()
 
 void loop()
 {
-  wdt_reset();
   ////////////////////////////////////
   // This needs to be here
   TinyWireS_stop_check();
@@ -208,6 +207,8 @@ void loop()
   activate_child();
 
   readReset();
+
+  wdt_reset();
 }
 
 
@@ -270,18 +271,13 @@ void set_new_address()
 }
 
 void readReset(){
-  static const unsigned int REFRESH_INTERVAL = 50; // ms 
-  static unsigned long lastRefreshTime = 0;
-  if(millis() - lastRefreshTime >= REFRESH_INTERVAL){
-    lastRefreshTime = millis();
-    if (analogRead(RESET_PIN) > RESET_THRESHOLD ) {  // reset pin is near Vcc
-      if(i2c_regs[3]){      // If it is soft resetting for the first time, reset it for real
-        resetFunc();
-      }
-      i2c_regs[1] = 0;                    // disable slave
-      i2c_regs[3] = 0;   // Set itself as an inactive block
-    } else {                              // reset pin is less than 1000/1024 * 5 vcc
-      i2c_regs[3] = 1;   // Set itself as an active block
+  if (analogRead(RESET_PIN) > RESET_THRESHOLD ) {  // reset pin is near Vcc
+    if(i2c_regs[3]){      // If it is soft resetting for the first time, reset it for real
+      resetFunc();
     }
+    i2c_regs[1] = 0;                    // disable slave
+    i2c_regs[3] = 0;   // Set itself as an inactive block
+  } else {                              // reset pin is less than 1000/1024 * 5 vcc
+    i2c_regs[3] = 1;   // Set itself as an active block
   }
 }
