@@ -36,7 +36,7 @@ MODE_WHILE_START            11
 MODE_WHILE_END              12
 MODE_END_OF_PROGRAM         99
 */
-byte slave_function     = 12;
+byte slave_function     = 3;
 
 volatile uint8_t i2c_regs[] =
 {
@@ -52,6 +52,15 @@ const byte reg_size = sizeof(i2c_regs);
 
 // Needed for software reset
 void(* resetFunc) (void) = 0;
+
+// Encoder Switch Debouncing (Kenneth A. Kuhn algorithm)
+#define DEBOUNCE_TIME               0.3
+#define DEBOUNCE_SAMPLE_FREQUENCY   10
+#define DEBOUNCE_MAXIMUM            (DEBOUNCE_TIME * DEBOUNCE_SAMPLE_FREQUENCY)
+boolean buttonInput = true;        /* 0 or 1 depending on the input signal */
+unsigned int buttonIntegrator;      /* Will range from 0 to the specified MAXIMUM */
+boolean buttonOutput = true;       /* Cleaned-up version of the input signal */
+
 
 
 void clear_eeprom(void){
@@ -271,6 +280,37 @@ void set_new_address()
 }
 
 void readReset(){
+
+  /*boolean newPushButton = false;
+
+  buttonInput = (analogRead(RESET_PIN) <= RESET_THRESHOLD) ? true : false;
+  if (buttonInput == false){
+    if (buttonIntegrator > 0){
+      buttonIntegrator--;
+    }
+  }else if (buttonIntegrator < DEBOUNCE_MAXIMUM){
+    buttonIntegrator++;
+  }
+  if (buttonIntegrator == 0){
+    buttonOutput = false;
+  }else if (buttonIntegrator >= DEBOUNCE_MAXIMUM){
+    if(buttonInput != buttonOutput){
+      newPushButton = true;
+    }
+    buttonOutput = true;
+    buttonIntegrator = DEBOUNCE_MAXIMUM;  // defensive code if integrator got corrupted
+  }
+  
+  if (newPushButton) {  // reset pin is near Vcc
+    if(i2c_regs[3]){      // If it is soft resetting for the first time, reset it for real
+      resetFunc();
+    }
+    i2c_regs[1] = 0;                    // disable slave
+    i2c_regs[3] = 0;   // Set itself as an inactive block
+  } else {                              // reset pin is less than 1000/1024 * 5 vcc
+    i2c_regs[3] = 1;   // Set itself as an active block
+  }*/
+
   if (analogRead(RESET_PIN) > RESET_THRESHOLD ) {  // reset pin is near Vcc
     if(i2c_regs[3]){      // If it is soft resetting for the first time, reset it for real
       resetFunc();
