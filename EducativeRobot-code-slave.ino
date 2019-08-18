@@ -5,11 +5,13 @@ Slave coding block:
 #include <Arduino.h>
 #include <EEPROM.h>
 #include <TinyWireS.h>
+#include <avr/wdt.h>
 
+#define LED_PIN           3
+#define GATE_PIN          4
+#define RESET_PIN         0
 
-#define LED_PIN     3
-#define GATE_PIN    4
-#define RESET_PIN   0
+#define RESET_THRESHOLD   1000   // Greater than this analog read, is considered reseted
 
 // The default buffer size
 #ifndef TWI_RX_BUFFER_SIZE
@@ -34,7 +36,7 @@ MODE_WHILE_START            11
 MODE_WHILE_END              12
 MODE_END_OF_PROGRAM         99
 */
-byte slave_function     = 3;
+byte slave_function     = 8;
 
 volatile uint8_t i2c_regs[] =
 {
@@ -113,6 +115,9 @@ void setup()
   TinyWireS.begin(getAddress());        // Join i2c network
   TinyWireS.onReceive(receiveEvent);
   TinyWireS.onRequest(requestEvent);
+
+  wdt_disable();
+	wdt_enable(WDTO_60MS); // Watchdog 60 ms
   
 }
 
@@ -192,6 +197,7 @@ void requestEvent()
 
 void loop()
 {
+  wdt_reset();
   ////////////////////////////////////
   // This needs to be here
   TinyWireS_stop_check();
@@ -268,7 +274,7 @@ void readReset(){
   static unsigned long lastRefreshTime = 0;
   if(millis() - lastRefreshTime >= REFRESH_INTERVAL){
     lastRefreshTime = millis();
-    if (analogRead(RESET_PIN) > 1000 ) {  // reset pin is near Vcc
+    if (analogRead(RESET_PIN) > RESET_THRESHOLD ) {  // reset pin is near Vcc
       if(i2c_regs[3]){      // If it is soft resetting for the first time, reset it for real
         resetFunc();
       }
